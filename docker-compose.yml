@@ -1,0 +1,33 @@
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "80:80/tcp"
+      - "443:443/tcp"
+    environment:
+      TZ: '${TZ}'
+      FTLCONF_webserver_api_password: '${PIHOLE_WEB_PASSWORD}'
+      FTLCONF_dns_listeningMode: 'ALL'
+      FTLCONF_dns_upstreams: '${FTL_DNS_UPSTREAMS}'
+    volumes:
+      - './etc-pihole:/etc/pihole'
+    cap_add:
+      - NET_ADMIN
+      - SYS_TIME
+      - SYS_NICE
+    restart: unless-stopped
+
+  pihole-init:
+    image: alpine:latest
+    depends_on:
+      pihole:
+        condition: service_healthy
+    environment:
+      PIHOLE_WEB_PASSWORD: '${PIHOLE_WEB_PASSWORD}'
+    volumes:
+      - './init-pihole.sh:/init-pihole.sh:ro'
+    entrypoint: ["sh", "-c", "apk add --no-cache curl jq >/dev/null && sh /init-pihole.sh"]
+    restart: "no"
